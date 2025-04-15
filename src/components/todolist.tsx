@@ -87,7 +87,7 @@ export default function TodoList() {
         deadline: formValues[1],
       };
       const docRef = await addDoc(collection(db, 'tasks'), newTask);
-      setTasks([...tasks, { id: docRef.id, ...newTask }]);
+      setTasks([{ id: docRef.id, ...newTask }, ...tasks]);
     }
   };
 
@@ -102,8 +102,28 @@ export default function TodoList() {
   };
 
   const deleteTask = async (id: string) => {
-    await deleteDoc(doc(db, 'tasks', id));
-    setTasks(tasks.filter((task) => task.id !== id));
+    const result = await Swal.fire({
+      text: 'Tugas ini akan dihapus secara permanen.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, hapus!',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#EF4444',
+      cancelButtonColor: '#6B7280',
+    });
+
+    if (result.isConfirmed) {
+      await deleteDoc(doc(db, 'tasks', id));
+      setTasks(tasks.filter((task) => task.id !== id));
+
+      Swal.fire({
+        title: 'Berhasil!',
+        text: 'Tugas berhasil dihapus.',
+        icon: 'success',
+        confirmButtonText: 'Oke',
+        confirmButtonColor: '#10B981',
+      });
+    }
   };
 
   const editTask = async (task: Task) => {
@@ -111,7 +131,9 @@ export default function TodoList() {
       title: 'Edit Tugas',
       html: `
         <input id="swal-input1" class="swal2-input" placeholder="Nama tugas" value="${task.text}">
-        <input id="swal-input2" type="datetime-local" class="swal2-input" value="${new Date(task.deadline).toISOString().slice(0, 16)}">
+        <input id="swal-input2" type="datetime-local" class="swal2-input" value="${new Date(
+          task.deadline
+        ).toISOString().slice(0, 16)}">
       `,
       focusConfirm: false,
       showCancelButton: true,
@@ -151,10 +173,7 @@ export default function TodoList() {
           "url('https://images.unsplash.com/photo-1519710164239-da123dc03ef4?auto=format&fit=crop&w=1470&q=80')",
       }}
     >
-      {/* Overlay transparan */}
       <div className="absolute inset-0 bg-white/60 backdrop-blur-sm" />
-
-      {/* Konten Todo List */}
       <div className="relative z-10 flex items-center justify-center min-h-screen px-4">
         <div className="max-w-lg w-full mt-12 p-6 bg-white/90 shadow-xl rounded-xl">
           <h1 className="text-3xl font-bold text-center text-emerald-600 mb-6">📋 To-Do List</h1>
