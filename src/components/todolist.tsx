@@ -1,4 +1,5 @@
 'use client';
+
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Swal from 'sweetalert2';
@@ -17,6 +18,7 @@ type Task = {
   text: string;
   completed: boolean;
   deadline: string;
+  progress: number;
 };
 
 export default function TodoList() {
@@ -67,6 +69,7 @@ export default function TodoList() {
       html: `
         <input id="swal-input1" class="swal2-input" placeholder="Nama tugas">
         <input id="swal-input2" type="datetime-local" class="swal2-input">
+        <input id="swal-input3" type="number" class="swal2-input" placeholder="Progress (0-100)">
       `,
       focusConfirm: false,
       showCancelButton: true,
@@ -76,15 +79,17 @@ export default function TodoList() {
         return [
           (document.getElementById('swal-input1') as HTMLInputElement)?.value,
           (document.getElementById('swal-input2') as HTMLInputElement)?.value,
+          parseInt((document.getElementById('swal-input3') as HTMLInputElement)?.value, 10),
         ];
       },
     });
 
-    if (formValues && formValues[0] && formValues[1]) {
+    if (formValues && formValues[0] && formValues[1] && !isNaN(formValues[2])) {
       const newTask: Omit<Task, 'id'> = {
         text: formValues[0],
         completed: false,
         deadline: formValues[1],
+        progress: formValues[2],
       };
       const docRef = await addDoc(collection(db, 'tasks'), newTask);
       setTasks([{ id: docRef.id, ...newTask }, ...tasks]);
@@ -134,6 +139,7 @@ export default function TodoList() {
         <input id="swal-input2" type="datetime-local" class="swal2-input" value="${new Date(
           task.deadline
         ).toISOString().slice(0, 16)}">
+        <input id="swal-input3" type="number" class="swal2-input" value="${task.progress}" placeholder="Progress (0-100)">
       `,
       focusConfirm: false,
       showCancelButton: true,
@@ -143,20 +149,23 @@ export default function TodoList() {
         return [
           (document.getElementById('swal-input1') as HTMLInputElement)?.value,
           (document.getElementById('swal-input2') as HTMLInputElement)?.value,
+          parseInt((document.getElementById('swal-input3') as HTMLInputElement)?.value, 10),
         ];
       },
     });
 
-    if (formValues && formValues[0] && formValues[1]) {
+    if (formValues && formValues[0] && formValues[1] && !isNaN(formValues[2])) {
       const updatedTask = {
         ...task,
         text: formValues[0],
         deadline: formValues[1],
+        progress: formValues[2],
       };
 
       await updateDoc(doc(db, 'tasks', task.id), {
         text: updatedTask.text,
         deadline: updatedTask.deadline,
+        progress: updatedTask.progress,
       });
 
       setTasks((prevTasks) =>
@@ -204,7 +213,7 @@ export default function TodoList() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ duration: 0.3 }}
-                    className={`p-4 rounded-lg shadow-sm border ${taskColor} flex justify-between items-center gap-4`}
+                    className={`p-4 rounded-lg shadow-sm border ${taskColor} flex justify-between items-start gap-4`}
                   >
                     <div className="flex-1">
                       <p
@@ -220,9 +229,28 @@ export default function TodoList() {
                       <p className="text-sm text-gray-600 mt-1">
                         📅 Deadline: {new Date(task.deadline).toLocaleString()}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-500 mb-1">
                         ⏳ {timeRemaining[task.id] || 'Menghitung...'}
                       </p>
+                      <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className={`h-3 rounded-full transition-all duration-500 ${
+                            task.progress === 100
+                              ? 'bg-purple-600'
+                              : task.progress > 80
+                              ? 'bg-emerald-500'
+                              : task.progress > 60
+                              ? 'bg-blue-500'
+                              : task.progress > 40
+                              ? 'bg-yellow-500'
+                              : task.progress > 20
+                              ? 'bg-orange-500'
+                              : 'bg-red-500'
+                          }`}
+                          style={{ width: `${task.progress}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-gray-700 mt-1">{task.progress}% selesai</p>
                     </div>
                     <div className="flex flex-col gap-2">
                       <button
